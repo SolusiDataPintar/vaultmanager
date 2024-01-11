@@ -2,6 +2,7 @@ package vaultmanager
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -20,6 +21,26 @@ func Open(cfg *api.Config) error {
 }
 
 func GetClient() *api.Client { return apiClient }
+
+func WriteKVv2(ctx context.Context, mountPath, secretPath string, data map[string]interface{}) error {
+	_, err := GetClient().KVv2(mountPath).Put(ctx, secretPath, data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ReadKVv2(ctx context.Context, mountPath, secretPath string) (map[string]any, error) {
+	s, err := GetClient().KVv2(mountPath).Get(ctx, secretPath)
+	if err != nil {
+		uwerr := errors.Unwrap(err)
+		if uwerr != nil {
+			return map[string]any{}, uwerr
+		}
+		return map[string]any{}, err
+	}
+	return s.Data, nil
+}
 
 func ManageTokenLifecycle(ctx context.Context) error {
 	ta := apiClient.Auth().Token()
