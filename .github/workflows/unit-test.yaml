@@ -10,13 +10,10 @@ jobs:
       uses: actions/setup-go@v4
       with:
         go-version: '1.21.x'
-    - name: Install Commands
-      run: |
-        go install github.com/joho/godotenv/cmd/godotenv@latest
     - name: Install Dependencies
       run: go get ./...
     - name: Test
       env:
         VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
         VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
-      run: godotenv go test -timeout 120s ./...
+      run: go test -timeout 120s ./...
