@@ -9,29 +9,36 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
-var apiClient *api.Client
+type VaultManager interface {
+	GetClient() *api.Client
+	WriteKVv2(ctx context.Context, mountPath, secretPath string, data map[string]interface{}) error
+	ReadKVv2(ctx context.Context, mountPath, secretPath string) (map[string]any, error)
+	ManageTokenLifecycle(ctx context.Context) error
+}
 
-func Open(cfg *api.Config) error {
+type vaultmanager struct{ apiClient *api.Client }
+
+func NewVaultManager(cfg *api.Config) (VaultManager, error) {
 	c, err := api.NewClient(cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	apiClient = c
-	return nil
+	return &vaultmanager{apiClient: c}, nil
+
 }
 
-func GetClient() *api.Client { return apiClient }
+func (vm *vaultmanager) GetClient() *api.Client { return vm.apiClient }
 
-func WriteKVv2(ctx context.Context, mountPath, secretPath string, data map[string]interface{}) error {
-	_, err := GetClient().KVv2(mountPath).Put(ctx, secretPath, data)
+func (vm *vaultmanager) WriteKVv2(ctx context.Context, mountPath, secretPath string, data map[string]interface{}) error {
+	_, err := vm.GetClient().KVv2(mountPath).Put(ctx, secretPath, data)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func ReadKVv2(ctx context.Context, mountPath, secretPath string) (map[string]any, error) {
-	s, err := GetClient().KVv2(mountPath).Get(ctx, secretPath)
+func (vm *vaultmanager) ReadKVv2(ctx context.Context, mountPath, secretPath string) (map[string]any, error) {
+	s, err := vm.GetClient().KVv2(mountPath).Get(ctx, secretPath)
 	if err != nil {
 		uwerr := errors.Unwrap(err)
 		if uwerr != nil {
@@ -42,8 +49,8 @@ func ReadKVv2(ctx context.Context, mountPath, secretPath string) (map[string]any
 	return s.Data, nil
 }
 
-func ManageTokenLifecycle(ctx context.Context) error {
-	ta := apiClient.Auth().Token()
+func (vm *vaultmanager) ManageTokenLifecycle(ctx context.Context) error {
+	ta := vm.GetClient().Auth().Token()
 
 	s, err := ta.LookupSelf()
 	if err != nil {

@@ -1,6 +1,7 @@
 package vaultmanager_test
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -9,25 +10,30 @@ import (
 	"github.com/SolusiDataPintar/vaultmanager"
 	"github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
 )
 
-func TestOpen(t *testing.T) {
-	err := vaultmanager.Open(nil)
+func TestNewVaultManager(t *testing.T) {
+	vm, err := vaultmanager.NewVaultManager(nil)
 	require.NoError(t, err)
+	require.NotNil(t, vm)
 }
 
 func TestGetClient(t *testing.T) {
-	err := vaultmanager.Open(nil)
+	vm, err := vaultmanager.NewVaultManager(nil)
 	require.NoError(t, err)
+	require.NotNil(t, vm)
 
-	c := vaultmanager.GetClient()
+	c := vm.GetClient()
 	require.NotNil(t, c)
 }
 
 func TestWriteKVv2(t *testing.T) {
-	err := vaultmanager.Open(nil)
+	vm, err := vaultmanager.NewVaultManager(nil)
 	require.NoError(t, err)
+	require.NotNil(t, vm)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
 
 	data := map[string]any{
 		"test1": "test5",
@@ -36,16 +42,20 @@ func TestWriteKVv2(t *testing.T) {
 		"test4": "test2",
 		"test5": "test1",
 	}
-	err = vaultmanager.WriteKVv2(context.Background(), "chainsmart", "test/vault-manager-write", data)
+	err = vm.WriteKVv2(ctx, "chainsmart", "test/vault-manager-write", data)
 	require.NoError(t, err)
 
-	err = vaultmanager.GetClient().KVv2("chainsmart").Delete(context.Background(), "test/vault-manager-write")
+	err = vm.GetClient().KVv2("chainsmart").Delete(ctx, "test/vault-manager-write")
 	require.NoError(t, err)
 }
 
 func TestReadKVv2(t *testing.T) {
-	err := vaultmanager.Open(nil)
+	vm, err := vaultmanager.NewVaultManager(nil)
 	require.NoError(t, err)
+	require.NotNil(t, vm)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
 
 	data := map[string]any{
 		"test1": "test5",
@@ -54,22 +64,26 @@ func TestReadKVv2(t *testing.T) {
 		"test4": "test2",
 		"test5": "test1",
 	}
-	err = vaultmanager.WriteKVv2(context.Background(), "chainsmart", "test/vault-manager-read", data)
+	err = vm.WriteKVv2(ctx, "chainsmart", "test/vault-manager-read", data)
 	require.NoError(t, err)
 
-	secretData, err := vaultmanager.ReadKVv2(context.Background(), "chainsmart", "test/vault-manager-read")
+	secretData, err := vm.ReadKVv2(ctx, "chainsmart", "test/vault-manager-read")
 	require.NoError(t, err)
 	require.Equal(t, data, secretData)
 
-	err = vaultmanager.GetClient().KVv2("chainsmart").Delete(context.Background(), "test/vault-manager-read")
+	err = vm.GetClient().KVv2("chainsmart").Delete(ctx, "test/vault-manager-read")
 	require.NoError(t, err)
 }
 
 func TestReadKVv2NotFound(t *testing.T) {
-	err := vaultmanager.Open(nil)
+	vm, err := vaultmanager.NewVaultManager(nil)
 	require.NoError(t, err)
+	require.NotNil(t, vm)
 
-	secretData, err := vaultmanager.ReadKVv2(context.Background(), "chainsmart", "test/vault-manager-not-found")
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	secretData, err := vm.ReadKVv2(ctx, "chainsmart", "test/vault-manager-not-found")
 	require.EqualError(t, err, api.ErrSecretNotFound.Error())
 	require.True(t, errors.Is(err, api.ErrSecretNotFound))
 	require.NotNil(t, secretData)
@@ -77,8 +91,9 @@ func TestReadKVv2NotFound(t *testing.T) {
 }
 
 func TestManageTokenLifecycle(t *testing.T) {
-	err := vaultmanager.Open(nil)
+	vm, err := vaultmanager.NewVaultManager(nil)
 	require.NoError(t, err)
+	require.NotNil(t, vm)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -86,7 +101,7 @@ func TestManageTokenLifecycle(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		err := vaultmanager.ManageTokenLifecycle(ctx)
+		err := vm.ManageTokenLifecycle(ctx)
 		require.NoError(t, err)
 		wg.Done()
 	}()
