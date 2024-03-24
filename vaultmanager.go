@@ -95,20 +95,27 @@ func renew(ctx context.Context, tokenAuth *api.TokenAuth, s *api.Secret) (*api.S
 		return nil, nil
 	}
 
-	dur, err := s.TokenTTL()
+	ttl, err := s.TokenTTL()
 	if err != nil {
 		return nil, err
 	}
 
-	slog.Info("vault token ttl", slog.Duration("ttl", dur), slog.Duration("renewIn", dur/2))
+	var dur time.Duration
+	if ttl <= 1*time.Hour {
+		dur = ttl / 2
+	} else {
+		dur = 1 * time.Hour
+	}
 
-	timer := time.NewTimer(dur / 2)
+	slog.Info("vault token ttl", slog.Duration("ttl", dur), slog.Duration("renewIn", dur))
+
+	timer := time.NewTimer(dur)
 	select {
 	case <-ctx.Done():
 		return nil, nil
 	case <-timer.C:
 		slog.Info("vault token ttl increment", slog.Duration("ttl", dur))
-		newS, err := tokenAuth.RenewSelfWithContext(ctx, int(dur/2))
+		newS, err := tokenAuth.RenewSelfWithContext(ctx, int(dur))
 		if err != nil {
 			slog.Error("error renew vault token", slog.Any("err", err))
 			return nil, err
