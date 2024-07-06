@@ -49,6 +49,10 @@ func (vm *vaultmanager) ReadKVv2(ctx context.Context, mountPath, secretPath stri
 	return s.Data, nil
 }
 
+func (vm *vaultmanager) ListWithContext(ctx context.Context, path string) (*api.Secret, error) {
+	return vm.GetClient().Logical().ListWithContext(ctx, path)
+}
+
 func (vm *vaultmanager) ManageTokenLifecycle(ctx context.Context) error {
 	ta := vm.GetClient().Auth().Token()
 
