@@ -90,6 +90,28 @@ func TestReadKVv2NotFound(t *testing.T) {
 	require.Empty(t, secretData)
 }
 
+func TestDeleteKVv2(t *testing.T) {
+	vm, err := vaultmanager.NewVaultManager(nil)
+	require.NoError(t, err)
+	require.NotNil(t, vm)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	data := map[string]any{
+		"test1": "test5",
+		"test2": "test4",
+		"test3": "test3",
+		"test4": "test2",
+		"test5": "test1",
+	}
+	err = vm.WriteKVv2(ctx, "chainsmart", "test/vault-manager-write", data)
+	require.NoError(t, err)
+
+	err = vm.DeleteKVv2(ctx, "chainsmart", "test/vault-manager-write")
+	require.NoError(t, err)
+}
+
 func TestManageTokenLifecycle(t *testing.T) {
 	vm, err := vaultmanager.NewVaultManager(nil)
 	require.NoError(t, err)

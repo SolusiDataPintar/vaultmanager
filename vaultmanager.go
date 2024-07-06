@@ -13,6 +13,8 @@ type VaultManager interface {
 	GetClient() *api.Client
 	WriteKVv2(ctx context.Context, mountPath, secretPath string, data map[string]interface{}) error
 	ReadKVv2(ctx context.Context, mountPath, secretPath string) (map[string]any, error)
+	ListWithContext(ctx context.Context, path string) (*api.Secret, error)
+	DeleteKVv2(ctx context.Context, mountPath, secretPath string) error
 	ManageTokenLifecycle(ctx context.Context) error
 }
 
@@ -47,6 +49,10 @@ func (vm *vaultmanager) ReadKVv2(ctx context.Context, mountPath, secretPath stri
 		return map[string]any{}, err
 	}
 	return s.Data, nil
+}
+
+func (vm *vaultmanager) DeleteKVv2(ctx context.Context, mountPath, secretPath string) error {
+	return vm.GetClient().KVv2(mountPath).Delete(ctx, secretPath)
 }
 
 func (vm *vaultmanager) ListWithContext(ctx context.Context, path string) (*api.Secret, error) {
