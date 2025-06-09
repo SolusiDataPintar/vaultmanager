@@ -75,7 +75,7 @@ func (vm *vaultmanager) ManageTokenLifecycle(ctx context.Context) error {
 	}
 
 	if !isRenewable {
-		slog.Info("vault token is not renewable")
+		slog.Debug("vault token is not renewable")
 		return nil
 	}
 
@@ -101,7 +101,7 @@ func renew(ctx context.Context, tokenAuth *api.TokenAuth, s *api.Secret) (*api.S
 	}
 
 	if !isRenewable {
-		slog.Info("vault token is not renewable")
+		slog.Debug("vault token is not renewable")
 		return nil, nil
 	}
 
@@ -117,14 +117,14 @@ func renew(ctx context.Context, tokenAuth *api.TokenAuth, s *api.Secret) (*api.S
 		dur = 1 * time.Hour
 	}
 
-	slog.Info("vault token ttl", slog.Duration("ttl", dur), slog.Duration("renewIn", dur))
+	slog.Debug("vault token ttl", slog.Duration("ttl", dur), slog.Duration("renewIn", dur))
 
 	timer := time.NewTimer(dur)
 	select {
 	case <-ctx.Done():
 		return nil, nil
 	case <-timer.C:
-		slog.Info("vault token ttl increment", slog.Duration("ttl", dur))
+		slog.Debug("vault token ttl increment", slog.Duration("ttl", dur))
 		newS, err := tokenAuth.RenewSelfWithContext(ctx, int(dur))
 		if err != nil {
 			slog.Error("error renew vault token", slog.Any("err", err))
