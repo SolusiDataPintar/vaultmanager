@@ -125,7 +125,7 @@ func renew(ctx context.Context, tokenAuth *api.TokenAuth, s *api.Secret) (*api.S
 		return nil, nil
 	case <-timer.C:
 		slog.Debug("vault token ttl increment", slog.Duration("ttl", dur))
-		newS, err := tokenAuth.RenewSelfWithContext(ctx, int(dur))
+		newS, err := tokenAuth.RenewSelfWithContext(ctx, 0)
 		if err != nil {
 			slog.Error("error renew vault token", slog.Any("err", err))
 			return nil, err
