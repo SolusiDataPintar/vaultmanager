@@ -9,37 +9,10 @@ import (
 	"time"
 
 	"github.com/SolusiDataPintar/vaultmanager"
-	"github.com/brianvoe/gofakeit/v6"
 	"github.com/hashicorp/vault/api"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/modules/vault"
 )
 
 func TestWriteKVv2(t *testing.T) {
-	token := gofakeit.Password(true, true, true, true, false, 32)
-	vaultContainer, err := vault.Run(t.Context(), "hashicorp/vault:1.20.2", vault.WithToken(token))
-	defer func() {
-		if err := testcontainers.TerminateContainer(vaultContainer); err != nil {
-			t.Errorf("failed to terminate vault container: %s", err)
-		}
-	}()
-	if err != nil {
-		t.Fatalf("failed to start vault container: %s", err)
-	}
-
-	hostAddress, err := vaultContainer.HttpHostAddress(t.Context())
-	if err != nil {
-		t.Fatalf("failed to get host address: %s", err)
-	}
-
-	t.Setenv("VAULT_ADDR", hostAddress)
-	t.Setenv("VAULT_TOKEN", token)
-
-	_, _, err = vaultContainer.Exec(t.Context(), []string{"vault", "secrets", "enable", "-path=chainsmart", "kv-v2"})
-	if err != nil {
-		t.Fatalf("failed to enable KVv2 secrets engine: %s", err)
-	}
-
 	vm, err := vaultmanager.NewVaultManager(nil)
 	if err != nil {
 		t.Fatalf("failed to create vault manager: %s", err)
@@ -55,42 +28,18 @@ func TestWriteKVv2(t *testing.T) {
 		"test4": "test2",
 		"test5": "test1",
 	}
-	err = vm.WriteKVv2(t.Context(), "chainsmart", "test/vault-manager-write", data)
+	err = vm.WriteKVv2(t.Context(), "dev-test", "test/vault-manager-write", data)
 	if err != nil {
 		t.Fatalf("failed to write KVv2: %s", err)
 	}
 
-	err = vm.GetClient().KVv2("chainsmart").Delete(t.Context(), "test/vault-manager-write")
+	err = vm.GetClient().KVv2("dev-test").Delete(t.Context(), "test/vault-manager-write")
 	if err != nil {
 		t.Fatalf("failed to delete KVv2: %s", err)
 	}
 }
 
 func TestReadKVv2(t *testing.T) {
-	token := gofakeit.Password(true, true, true, true, false, 32)
-	vaultContainer, err := vault.Run(t.Context(), "hashicorp/vault:1.20.2", vault.WithToken(token))
-	defer func() {
-		if err := testcontainers.TerminateContainer(vaultContainer); err != nil {
-			t.Errorf("failed to terminate vault container: %s", err)
-		}
-	}()
-	if err != nil {
-		t.Fatalf("failed to start vault container: %s", err)
-	}
-
-	hostAddress, err := vaultContainer.HttpHostAddress(t.Context())
-	if err != nil {
-		t.Fatalf("failed to get host address: %s", err)
-	}
-
-	t.Setenv("VAULT_ADDR", hostAddress)
-	t.Setenv("VAULT_TOKEN", token)
-
-	_, _, err = vaultContainer.Exec(t.Context(), []string{"vault", "secrets", "enable", "-path=chainsmart", "kv-v2"})
-	if err != nil {
-		t.Fatalf("failed to enable KVv2 secrets engine: %s", err)
-	}
-
 	vm, err := vaultmanager.NewVaultManager(nil)
 	if err != nil {
 		t.Fatalf("failed to create vault manager: %s", err)
@@ -106,12 +55,12 @@ func TestReadKVv2(t *testing.T) {
 		"test4": "test2",
 		"test5": "test1",
 	}
-	err = vm.WriteKVv2(t.Context(), "chainsmart", "test/vault-manager-read", data)
+	err = vm.WriteKVv2(t.Context(), "dev-test", "test/vault-manager-read", data)
 	if err != nil {
 		t.Fatalf("failed to write KVv2: %s", err)
 	}
 
-	secretData, err := vm.ReadKVv2(t.Context(), "chainsmart", "test/vault-manager-read")
+	secretData, err := vm.ReadKVv2(t.Context(), "dev-test", "test/vault-manager-read")
 	if err != nil {
 		t.Fatalf("failed to read KVv2: %s", err)
 	}
@@ -119,37 +68,13 @@ func TestReadKVv2(t *testing.T) {
 		t.Fatalf("expected %v, got %v", data, secretData)
 	}
 
-	err = vm.GetClient().KVv2("chainsmart").Delete(t.Context(), "test/vault-manager-read")
+	err = vm.GetClient().KVv2("dev-test").Delete(t.Context(), "test/vault-manager-read")
 	if err != nil {
 		t.Fatalf("failed to delete KVv2: %s", err)
 	}
 }
 
 func TestReadKVv2NotFound(t *testing.T) {
-	token := gofakeit.Password(true, true, true, true, false, 32)
-	vaultContainer, err := vault.Run(t.Context(), "hashicorp/vault:1.20.2", vault.WithToken(token))
-	defer func() {
-		if err := testcontainers.TerminateContainer(vaultContainer); err != nil {
-			t.Errorf("failed to terminate vault container: %s", err)
-		}
-	}()
-	if err != nil {
-		t.Fatalf("failed to start vault container: %s", err)
-	}
-
-	hostAddress, err := vaultContainer.HttpHostAddress(t.Context())
-	if err != nil {
-		t.Fatalf("failed to get host address: %s", err)
-	}
-
-	t.Setenv("VAULT_ADDR", hostAddress)
-	t.Setenv("VAULT_TOKEN", token)
-
-	_, _, err = vaultContainer.Exec(t.Context(), []string{"vault", "secrets", "enable", "-path=chainsmart", "kv-v2"})
-	if err != nil {
-		t.Fatalf("failed to enable KVv2 secrets engine: %s", err)
-	}
-
 	vm, err := vaultmanager.NewVaultManager(nil)
 	if err != nil {
 		t.Fatalf("failed to create vault manager: %s", err)
@@ -158,7 +83,7 @@ func TestReadKVv2NotFound(t *testing.T) {
 		t.Fatal("vault manager is nil")
 	}
 
-	secretData, err := vm.ReadKVv2(t.Context(), "chainsmart", "test/vault-manager-not-found")
+	secretData, err := vm.ReadKVv2(t.Context(), "dev-test", "test/vault-manager-not-found")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -176,30 +101,6 @@ func TestReadKVv2NotFound(t *testing.T) {
 }
 
 func TestDeleteKVv2(t *testing.T) {
-	token := gofakeit.Password(true, true, true, true, false, 32)
-	vaultContainer, err := vault.Run(t.Context(), "hashicorp/vault:1.20.2", vault.WithToken(token))
-	defer func() {
-		if err := testcontainers.TerminateContainer(vaultContainer); err != nil {
-			t.Errorf("failed to terminate vault container: %s", err)
-		}
-	}()
-	if err != nil {
-		t.Fatalf("failed to start vault container: %s", err)
-	}
-
-	hostAddress, err := vaultContainer.HttpHostAddress(t.Context())
-	if err != nil {
-		t.Fatalf("failed to get host address: %s", err)
-	}
-
-	t.Setenv("VAULT_ADDR", hostAddress)
-	t.Setenv("VAULT_TOKEN", token)
-
-	_, _, err = vaultContainer.Exec(t.Context(), []string{"vault", "secrets", "enable", "-path=chainsmart", "kv-v2"})
-	if err != nil {
-		t.Fatalf("failed to enable KVv2 secrets engine: %s", err)
-	}
-
 	vm, err := vaultmanager.NewVaultManager(nil)
 	if err != nil {
 		t.Fatalf("failed to create vault manager: %s", err)
@@ -215,42 +116,18 @@ func TestDeleteKVv2(t *testing.T) {
 		"test4": "test2",
 		"test5": "test1",
 	}
-	err = vm.WriteKVv2(t.Context(), "chainsmart", "test/vault-manager-write", data)
+	err = vm.WriteKVv2(t.Context(), "dev-test", "test/vault-manager-write", data)
 	if err != nil {
 		t.Fatalf("failed to write KVv2: %s", err)
 	}
 
-	err = vm.DeleteKVv2(t.Context(), "chainsmart", "test/vault-manager-write")
+	err = vm.DeleteKVv2(t.Context(), "dev-test", "test/vault-manager-write")
 	if err != nil {
 		t.Fatalf("failed to delete KVv2: %s", err)
 	}
 }
 
 func TestManageTokenLifecycle(t *testing.T) {
-	token := gofakeit.Password(true, true, true, true, false, 32)
-	vaultContainer, err := vault.Run(t.Context(), "hashicorp/vault:1.20.2", vault.WithToken(token))
-	defer func() {
-		if err := testcontainers.TerminateContainer(vaultContainer); err != nil {
-			t.Errorf("failed to terminate vault container: %s", err)
-		}
-	}()
-	if err != nil {
-		t.Fatalf("failed to start vault container: %s", err)
-	}
-
-	hostAddress, err := vaultContainer.HttpHostAddress(t.Context())
-	if err != nil {
-		t.Fatalf("failed to get host address: %s", err)
-	}
-
-	t.Setenv("VAULT_ADDR", hostAddress)
-	t.Setenv("VAULT_TOKEN", token)
-
-	_, _, err = vaultContainer.Exec(t.Context(), []string{"vault", "secrets", "enable", "-path=chainsmart", "kv-v2"})
-	if err != nil {
-		t.Fatalf("failed to enable KVv2 secrets engine: %s", err)
-	}
-
 	vm, err := vaultmanager.NewVaultManager(nil)
 	if err != nil {
 		t.Fatalf("failed to create vault manager: %s", err)
